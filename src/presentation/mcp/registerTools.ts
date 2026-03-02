@@ -24,6 +24,8 @@ import {
   MEDIA_MAX_MAX_DOWNLOAD_BYTES,
   MEDIA_MIN_DOWNLOAD_TIMEOUT_MS,
   MEDIA_MIN_MAX_DOWNLOAD_BYTES,
+  TWSTALKER_DEFAULT_LIMIT,
+  TWSTALKER_MAX_LIMIT,
   WAYBACK_DEFAULT_LIMIT,
   WAYBACK_MAX_LIMIT,
   WAYBACK_TIMEOUT_MS,
@@ -36,12 +38,14 @@ import { createArchiveTodayLookupUseCase } from "@/application/archive/archiveTo
 import { createDuckduckgoSearchUseCase } from "@/application/duckduckgo/duckduckgoSearchUseCase";
 import { createExtractMediaMetadataUseCase } from "@/application/media/extractMediaMetadataUseCase";
 import { createDomainReconBundleUseCase } from "@/application/recon/domainReconBundleUseCase";
+import { createTwstalkerProfileLookupUseCase } from "@/application/twstalker/twstalkerProfileLookupUseCase";
 import { createYandexImageSearchUseCase } from "@/application/yandexImage/yandexImageSearchUseCase";
 import { archiveTodayGateway } from "@/infrastructure/archive/archiveTodayGateway";
 import { duckduckgoSearchGateway } from "@/infrastructure/duckduckgo/duckduckgoSearchGateway";
 import { fetchWithTimeout } from "@/infrastructure/http/fetchWithTimeout";
 import { metadataExtractor } from "@/infrastructure/media/metadataExtractor";
 import { reconDataSources } from "@/infrastructure/recon/reconDataSources";
+import { twstalkerProfileGateway } from "@/infrastructure/twstalker/twstalkerProfileGateway";
 import { yandexImageSearchGateway } from "@/infrastructure/yandex/yandexImageSearchGateway";
 import { collectTopDomains, searchWriteups, type WriteupDoc } from "@/writeups";
 import { runValidatedTool } from "./runValidatedTool.js";
@@ -54,6 +58,7 @@ import {
   jinaFetchUrlInputSchema,
   listFrequentDomainsInputSchema,
   searchPastWriteupsInputSchema,
+  twstalkerProfileLookupInputSchema,
   waybackCdxLookupInputSchema,
   yandexImageSearchInputSchema,
 } from "./toolSchemas.js";
@@ -70,6 +75,8 @@ export function registerTools(server: McpServer, docs: WriteupDoc[]) {
   const archiveTodayLookupUseCase = createArchiveTodayLookupUseCase(archiveTodayGateway);
   const domainReconBundleUseCase = createDomainReconBundleUseCase(reconDataSources);
   const extractMediaMetadataUseCase = createExtractMediaMetadataUseCase(metadataExtractor);
+  const twstalkerProfileLookupUseCase =
+    createTwstalkerProfileLookupUseCase(twstalkerProfileGateway);
 
   server.registerTool(
     "search_past_writeups",
@@ -401,6 +408,34 @@ export function registerTools(server: McpServer, docs: WriteupDoc[]) {
           truncated: body.length > clipped.length,
         };
       })
+  );
+
+  server.registerTool(
+    "twstalker_profile_lookup",
+    {
+      description:
+        "Fetch a Twstalker profile via r.jina.ai and extract recent post snippets without an API key.",
+      inputSchema: {
+        username: z
+          .string()
+          .min(1)
+          .describe("Twstalker username, @username, or full twstalker.com profile URL"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(TWSTALKER_MAX_LIMIT)
+          .optional()
+          .describe(`Maximum number of post snippets to return (default: ${TWSTALKER_DEFAULT_LIMIT})`),
+      },
+    },
+    async (input) =>
+      runValidatedTool(twstalkerProfileLookupInputSchema, input, async (validated) =>
+        twstalkerProfileLookupUseCase.execute({
+          username: validated.username,
+          limit: validated.limit,
+        })
+      )
   );
 
   server.registerTool(

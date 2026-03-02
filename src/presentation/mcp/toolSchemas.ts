@@ -14,6 +14,7 @@ import {
   MEDIA_MAX_MAX_DOWNLOAD_BYTES,
   MEDIA_MIN_DOWNLOAD_TIMEOUT_MS,
   MEDIA_MIN_MAX_DOWNLOAD_BYTES,
+  TWSTALKER_MAX_LIMIT,
   WAYBACK_MAX_LIMIT,
   WRITEUP_SEARCH_MAX_LIMIT,
   YANDEX_IMAGE_MAX_LIMIT,
@@ -83,6 +84,11 @@ export const waybackCdxLookupInputSchema = v.object({
 export const jinaFetchUrlInputSchema = v.object({
   url: nonEmptyString(),
   maxChars: v.optional(intRange(JINA_MIN_MAX_CHARS, JINA_MAX_MAX_CHARS)),
+});
+
+export const twstalkerProfileLookupInputSchema = v.object({
+  username: nonEmptyString(),
+  limit: v.optional(intRange(1, TWSTALKER_MAX_LIMIT)),
 });
 
 export const capsolverCreateAndPollInputSchema = v.object({

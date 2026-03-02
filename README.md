@@ -100,6 +100,8 @@ After startup:
   - Query Wayback Machine CDX API snapshots
 - `jina_fetch_url`
   - Fetch page text through `https://r.jina.ai/`
+- `twstalker_profile_lookup`
+  - Fetch Twstalker profile timeline via `r.jina.ai` and extract recent post snippets
 - `capsolver_create_and_poll`
   - Create a CapSolver task and poll until completion (`apiKey` passed as input)
 - `yandex_image_search_scrape`
