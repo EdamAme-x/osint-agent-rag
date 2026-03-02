@@ -27,7 +27,11 @@ import {
   TWSTALKER_DEFAULT_LIMIT,
   TWSTALKER_MAX_LIMIT,
   WAYBACK_DEFAULT_LIMIT,
+  WAYBACK_MAX_TIMEOUT_MS,
   WAYBACK_MAX_LIMIT,
+  WAYBACK_MIN_TIMEOUT_MS,
+  WAYBACK_RETRY_BACKOFF_MS,
+  WAYBACK_RETRY_COUNT,
   WAYBACK_TIMEOUT_MS,
   WRITEUP_SEARCH_DEFAULT_LIMIT,
   WRITEUP_SEARCH_MAX_LIMIT,
@@ -67,6 +71,21 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  const maybeName =
+    "name" in error && typeof (error as { name?: unknown }).name === "string"
+      ? ((error as { name?: string }).name as string)
+      : "";
+  const maybeMessage =
+    "message" in error && typeof (error as { message?: unknown }).message === "string"
+      ? ((error as { message?: string }).message as string)
+      : "";
+  return maybeName === "AbortError" || maybeMessage.toLowerCase().includes("aborted");
 }
 
 export function registerTools(server: McpServer, docs: WriteupDoc[]) {
@@ -326,6 +345,13 @@ export function registerTools(server: McpServer, docs: WriteupDoc[]) {
           .max(WAYBACK_MAX_LIMIT)
           .optional()
           .describe(`Max number of rows (default: ${WAYBACK_DEFAULT_LIMIT})`),
+        timeoutMs: z
+          .number()
+          .int()
+          .min(WAYBACK_MIN_TIMEOUT_MS)
+          .max(WAYBACK_MAX_TIMEOUT_MS)
+          .optional()
+          .describe(`HTTP timeout in milliseconds (default: ${WAYBACK_TIMEOUT_MS})`),
       },
     },
     async (input) =>
@@ -343,7 +369,28 @@ export function registerTools(server: McpServer, docs: WriteupDoc[]) {
           query.set("to", validated.to);
         }
         const endpoint = `https://web.archive.org/cdx/search/cdx?${query.toString()}`;
-        const response = await fetchWithTimeout(endpoint, undefined, WAYBACK_TIMEOUT_MS);
+        const timeoutMs = validated.timeoutMs ?? WAYBACK_TIMEOUT_MS;
+        let response: Response | undefined;
+        let lastAbortError: unknown;
+
+        for (let attempt = 0; attempt <= WAYBACK_RETRY_COUNT; attempt += 1) {
+          try {
+            response = await fetchWithTimeout(endpoint, undefined, timeoutMs);
+            break;
+          } catch (error) {
+            if (!isAbortLikeError(error) || attempt === WAYBACK_RETRY_COUNT) {
+              throw error;
+            }
+            lastAbortError = error;
+            await sleep(WAYBACK_RETRY_BACKOFF_MS * (attempt + 1));
+          }
+        }
+
+        if (!response) {
+          throw lastAbortError instanceof Error
+            ? lastAbortError
+            : new Error("Wayback CDX request failed");
+        }
         const body = await response.text();
         if (!response.ok) {
           throw new Error(

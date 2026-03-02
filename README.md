@@ -97,7 +97,7 @@ After startup:
 - `duckduckgo_search_api`
   - Query DuckDuckGo Instant Answer API (no API key required)
 - `wayback_cdx_lookup`
-  - Query Wayback Machine CDX API snapshots
+  - Query Wayback Machine CDX API snapshots (supports `timeoutMs` for heavy wildcard queries)
 - `jina_fetch_url`
   - Fetch page text through `https://r.jina.ai/`
 - `twstalker_profile_lookup`

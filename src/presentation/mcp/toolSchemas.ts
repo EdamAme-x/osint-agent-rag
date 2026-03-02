@@ -15,7 +15,9 @@ import {
   MEDIA_MIN_DOWNLOAD_TIMEOUT_MS,
   MEDIA_MIN_MAX_DOWNLOAD_BYTES,
   TWSTALKER_MAX_LIMIT,
+  WAYBACK_MAX_TIMEOUT_MS,
   WAYBACK_MAX_LIMIT,
+  WAYBACK_MIN_TIMEOUT_MS,
   WRITEUP_SEARCH_MAX_LIMIT,
   YANDEX_IMAGE_MAX_LIMIT,
 } from "@/config/constants";
@@ -79,6 +81,7 @@ export const waybackCdxLookupInputSchema = v.object({
   from: v.optional(v.string()),
   to: v.optional(v.string()),
   limit: v.optional(intRange(1, WAYBACK_MAX_LIMIT)),
+  timeoutMs: v.optional(intRange(WAYBACK_MIN_TIMEOUT_MS, WAYBACK_MAX_TIMEOUT_MS)),
 });
 
 export const jinaFetchUrlInputSchema = v.object({
