@@ -1,6 +1,6 @@
 {
   "name": "osint-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for OSINT workflows backed by local writeups",
   "scripts": {
     "dev": "bun run dev:http",
