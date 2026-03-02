@@ -22,6 +22,18 @@ bun install
 bun run dev
 ```
 
+## Git Hooks
+
+Install the repository hooks:
+
+```bash
+bun run hooks:install
+```
+
+Current policy:
+
+- `pre-commit` runs `bun run typecheck` only
+
 ## Codex MCP (One Command)
 
 Register this server in Codex with a single command:
